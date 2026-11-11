@@ -1,0 +1,1063 @@
+openapi: 3.0.3
+info:
+  title: Restaurant Management API
+  version: 1.0.0
+  description: 'Multi-tenant REST API. All money values are integers in minor units
+    (cents). Timestamps are UTC ISO-8601. Errors: {"error": {"code", "message", "details"}}.'
+servers:
+- url: /api/v1
+security:
+- bearerAuth: []
+paths:
+  /auth/register:
+    post:
+      summary: Create a restaurant and its owner account (returns JWT)
+      description: 'Allowed roles: public.'
+      tags:
+      - auth
+      responses:
+        '201':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                restaurant_name:
+                  type: string
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+              required:
+              - restaurant_name
+              - name
+              - email
+              - password
+  /auth/login:
+    post:
+      summary: Sign in (returns JWT)
+      description: 'Allowed roles: public.'
+      tags:
+      - auth
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+              required:
+              - email
+              - password
+  /auth/logout:
+    post:
+      summary: Revoke the current token
+      description: 'Allowed roles: any signed-in role.'
+      tags:
+      - auth
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+  /auth/me:
+    get:
+      summary: Current user and restaurant summary
+      description: 'Allowed roles: any signed-in role.'
+      tags:
+      - auth
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+  /auth/change-password:
+    post:
+      summary: Change own password (signs out other sessions)
+      description: 'Allowed roles: any signed-in role.'
+      tags:
+      - auth
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                current_password:
+                  type: string
+                new_password:
+                  type: string
+              required:
+              - current_password
+              - new_password
+  /categories:
+    get:
+      summary: List menu categories
+      description: 'Allowed roles: any signed-in role.'
+      tags:
+      - categories
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      summary: Create category
+      description: 'Allowed roles: owner, manager.'
+      tags:
+      - categories
+      responses:
+        '201':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                sort_order:
+                  type: integer
+              required:
+              - name
+  /categories/{cid}:
+    put:
+      summary: Update category
+      description: 'Allowed roles: owner, manager.'
+      tags:
+      - categories
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                sort_order:
+                  type: integer
+      parameters:
+      - name: cid
+        in: path
+        required: true
+        schema:
+          type: integer
+    delete:
+      summary: Delete empty category
+      description: 'Allowed roles: owner, manager.'
+      tags:
+      - categories
+      responses:
+        '204':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+      - name: cid
+        in: path
+        required: true
+        schema:
+          type: integer
+  /menu-items:
+    get:
+      summary: 'List menu items (filters: category_id, available, q)'
+      description: 'Allowed roles: any signed-in role.'
+      tags:
+      - menu-items
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      summary: Create menu item (price in minor units)
+      description: 'Allowed roles: owner, manager.'
+      tags:
+      - menu-items
+      responses:
+        '201':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                category_id:
+                  type: integer
+                name:
+                  type: string
+                price:
+                  type: integer
+                description:
+                  type: string
+                available:
+                  type: boolean
+              required:
+              - category_id
+              - name
+              - price
+  /menu-items/{mid}:
+    get:
+      summary: Get menu item
+      description: 'Allowed roles: any signed-in role.'
+      tags:
+      - menu-items
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+      - name: mid
+        in: path
+        required: true
+        schema:
+          type: integer
+    put:
+      summary: Update menu item
+      description: 'Allowed roles: owner, manager.'
+      tags:
+      - menu-items
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                category_id:
+                  type: integer
+                name:
+                  type: string
+                price:
+                  type: integer
+                description:
+                  type: string
+                available:
+                  type: boolean
+      parameters:
+      - name: mid
+        in: path
+        required: true
+        schema:
+          type: integer
+    delete:
+      summary: Delete (or archive, if it appears in past orders) a menu item
+      description: 'Allowed roles: owner, manager.'
+      tags:
+      - menu-items
+      responses:
+        '204':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+      - name: mid
+        in: path
+        required: true
+        schema:
+          type: integer
+  /tables:
+    get:
+      summary: List tables with active order and next reservation
+      description: 'Allowed roles: any signed-in role.'
+      tags:
+      - tables
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      summary: Create table
+      description: 'Allowed roles: owner, manager.'
+      tags:
+      - tables
+      responses:
+        '201':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                label:
+                  type: string
+                capacity:
+                  type: integer
+              required:
+              - label
+              - capacity
+  /tables/{tid}:
+    put:
+      summary: Update table
+      description: 'Allowed roles: owner, manager.'
+      tags:
+      - tables
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                label:
+                  type: string
+                capacity:
+                  type: integer
+      parameters:
+      - name: tid
+        in: path
+        required: true
+        schema:
+          type: integer
+    delete:
+      summary: Delete table without history
+      description: 'Allowed roles: owner, manager.'
+      tags:
+      - tables
+      responses:
+        '204':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+      - name: tid
+        in: path
+        required: true
+        schema:
+          type: integer
+  /tables/{tid}/status:
+    patch:
+      summary: Set table status (available, occupied, reserved)
+      description: 'Allowed roles: owner, manager, cashier, waiter.'
+      tags:
+      - tables
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                  - available
+                  - occupied
+                  - reserved
+              required:
+              - status
+      parameters:
+      - name: tid
+        in: path
+        required: true
+        schema:
+          type: integer
+  /reservations:
+    get:
+      summary: 'List reservations (filters: date, status)'
+      description: 'Allowed roles: owner, manager, cashier, waiter.'
+      tags:
+      - reservations
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      summary: Create reservation (no overlap within 2h, party <= capacity)
+      description: 'Allowed roles: owner, manager, cashier, waiter.'
+      tags:
+      - reservations
+      responses:
+        '201':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                table_id:
+                  type: integer
+                customer_name:
+                  type: string
+                party_size:
+                  type: integer
+                reserved_for:
+                  type: string
+                  format: date-time
+                phone:
+                  type: string
+                notes:
+                  type: string
+              required:
+              - table_id
+              - customer_name
+              - party_size
+              - reserved_for
+  /reservations/{resv_id}:
+    put:
+      summary: Edit a booked reservation
+      description: 'Allowed roles: owner, manager, cashier, waiter.'
+      tags:
+      - reservations
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                table_id:
+                  type: integer
+                customer_name:
+                  type: string
+                party_size:
+                  type: integer
+                reserved_for:
+                  type: string
+                  format: date-time
+                phone:
+                  type: string
+                notes:
+                  type: string
+      parameters:
+      - name: resv_id
+        in: path
+        required: true
+        schema:
+          type: integer
+  /reservations/{resv_id}/status:
+    patch:
+      summary: Seat, cancel or complete a reservation
+      description: 'Allowed roles: owner, manager, cashier, waiter.'
+      tags:
+      - reservations
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                  - seated
+                  - cancelled
+                  - completed
+              required:
+              - status
+      parameters:
+      - name: resv_id
+        in: path
+        required: true
+        schema:
+          type: integer
+  /orders:
+    get:
+      summary: 'List orders (filters: status, active, table_id, limit, offset)'
+      description: 'Allowed roles: any signed-in role.'
+      tags:
+      - orders
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      summary: Create an order (dine_in needs table_id)
+      description: 'Allowed roles: owner, manager, cashier, waiter.'
+      tags:
+      - orders
+      responses:
+        '201':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order_type:
+                  type: string
+                  enum:
+                  - dine_in
+                  - takeaway
+                table_id:
+                  type: integer
+                notes:
+                  type: string
+                items: &id001
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      menu_item_id:
+                        type: integer
+                      quantity:
+                        type: integer
+                      notes:
+                        type: string
+                    required:
+                    - menu_item_id
+                    - quantity
+              required:
+              - items
+  /orders/{oid}:
+    get:
+      summary: Get order with items
+      description: 'Allowed roles: any signed-in role.'
+      tags:
+      - orders
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+      - name: oid
+        in: path
+        required: true
+        schema:
+          type: integer
+  /orders/{oid}/items:
+    post:
+      summary: Add items to an active order (returns it to the kitchen queue)
+      description: 'Allowed roles: owner, manager, cashier, waiter.'
+      tags:
+      - orders
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items: *id001
+              required:
+              - items
+      parameters:
+      - name: oid
+        in: path
+        required: true
+        schema:
+          type: integer
+  /orders/{oid}/items/{item_id}:
+    patch:
+      summary: Change quantity/notes of an item (order still 'new')
+      description: 'Allowed roles: owner, manager, cashier, waiter.'
+      tags:
+      - orders
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quantity:
+                  type: integer
+                notes:
+                  type: string
+      parameters:
+      - name: oid
+        in: path
+        required: true
+        schema:
+          type: integer
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    delete:
+      summary: Remove an item (order still 'new')
+      description: 'Allowed roles: owner, manager, cashier, waiter.'
+      tags:
+      - orders
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+      - name: oid
+        in: path
+        required: true
+        schema:
+          type: integer
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: integer
+  /orders/{oid}/status:
+    patch:
+      summary: Mark served (after ready) or cancel
+      description: 'Allowed roles: owner, manager, cashier, waiter.'
+      tags:
+      - orders
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                  - served
+                  - cancelled
+              required:
+              - status
+      parameters:
+      - name: oid
+        in: path
+        required: true
+        schema:
+          type: integer
+  /kitchen/orders:
+    get:
+      summary: 'Kitchen queue: new, preparing and ready orders'
+      description: 'Allowed roles: owner, manager, kitchen.'
+      tags:
+      - kitchen
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+  /kitchen/orders/{oid}/status:
+    patch:
+      summary: Move order new→preparing→ready
+      description: 'Allowed roles: owner, manager, kitchen.'
+      tags:
+      - kitchen
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                  - preparing
+                  - ready
+              required:
+              - status
+      parameters:
+      - name: oid
+        in: path
+        required: true
+        schema:
+          type: integer
+  /orders/{oid}/bill/preview:
+    post:
+      summary: Calculate totals without paying
+      description: 'Allowed roles: owner, manager, cashier.'
+      tags:
+      - orders
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                discount_type: &id002
+                  type: string
+                  enum:
+                  - none
+                  - percent
+                  - amount
+                discount_value:
+                  type: number
+      parameters:
+      - name: oid
+        in: path
+        required: true
+        schema:
+          type: integer
+  /orders/{oid}/bill:
+    post:
+      summary: Create bill and record payment (discounts >20% need manager)
+      description: 'Allowed roles: owner, manager, cashier.'
+      tags:
+      - orders
+      responses:
+        '201':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payment_method:
+                  type: string
+                  enum:
+                  - cash
+                  - card
+                  - upi
+                  - other
+                amount_tendered:
+                  type: integer
+                discount_type: *id002
+                discount_value:
+                  type: number
+              required:
+              - payment_method
+      parameters:
+      - name: oid
+        in: path
+        required: true
+        schema:
+          type: integer
+  /bills:
+    get:
+      summary: 'List bills (filter: date, limit, offset)'
+      description: 'Allowed roles: owner, manager, cashier.'
+      tags:
+      - bills
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+  /bills/{bid}:
+    get:
+      summary: Get bill with line items
+      description: 'Allowed roles: owner, manager, cashier.'
+      tags:
+      - bills
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+      - name: bid
+        in: path
+        required: true
+        schema:
+          type: integer
+  /staff/permissions:
+    get:
+      summary: Role/permission matrix
+      description: 'Allowed roles: any signed-in role.'
+      tags:
+      - staff
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+  /staff:
+    get:
+      summary: List staff
+      description: 'Allowed roles: owner, manager.'
+      tags:
+      - staff
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      summary: Create staff account (only owner may create owners/managers)
+      description: 'Allowed roles: owner, manager.'
+      tags:
+      - staff
+      responses:
+        '201':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                role:
+                  type: string
+                  enum:
+                  - owner
+                  - manager
+                  - cashier
+                  - waiter
+                  - kitchen
+              required:
+              - name
+              - email
+              - password
+              - role
+  /staff/{uid}:
+    put:
+      summary: Update name/role/active
+      description: 'Allowed roles: owner, manager.'
+      tags:
+      - staff
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                role:
+                  type: string
+                  enum:
+                  - owner
+                  - manager
+                  - cashier
+                  - waiter
+                  - kitchen
+                active:
+                  type: boolean
+      parameters:
+      - name: uid
+        in: path
+        required: true
+        schema:
+          type: integer
+  /staff/{uid}/reset-password:
+    post:
+      summary: Reset a staff password
+      description: 'Allowed roles: owner, manager.'
+      tags:
+      - staff
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                new_password:
+                  type: string
+              required:
+              - new_password
+      parameters:
+      - name: uid
+        in: path
+        required: true
+        schema:
+          type: integer
+  /settings:
+    get:
+      summary: Restaurant settings
+      description: 'Allowed roles: any signed-in role.'
+      tags:
+      - settings
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+    put:
+      summary: Update settings
+      description: 'Allowed roles: owner.'
+      tags:
+      - settings
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                address:
+                  type: string
+                phone:
+                  type: string
+                currency:
+                  type: string
+                currency_symbol:
+                  type: string
+                currency_decimals:
+                  type: integer
+                tax_rate:
+                  type: number
+                service_charge_rate:
+                  type: number
+                tz_offset_minutes:
+                  type: integer
+  /dashboard:
+    get:
+      summary: Today's KPIs, tables, 7-day revenue, top items
+      description: 'Allowed roles: owner, manager.'
+      tags:
+      - dashboard
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+  /reports/sales:
+    get:
+      summary: Sales report (period=daily|weekly|monthly, date=YYYY-MM-DD)
+      description: 'Allowed roles: owner, manager.'
+      tags:
+      - reports
+      responses:
+        '200':
+          description: Success
+        default:
+          $ref: '#/components/responses/Error'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    type: object
